@@ -76,20 +76,21 @@ function updateVisuals(state) {
   const originX = 500;
   const groundY = 620;
   const scaleX = clamp(620 / Math.max(state.buildingOffset, 8), 16, 54);
-  const scaleY = 116;
+  const scaleY = 95;
   const buildingX = originX + state.buildingOffset * scaleX;
   const lidarY = groundY - state.lidarHeight * scaleY;
   const cameraY = groundY - state.cameraHeight * scaleY;
   const roofY = groundY - state.vehicleHeight * scaleY;
   const mastTopY = groundY - (state.vehicleHeight + state.mastRise) * scaleY;
-  const buildingHeightPx = clamp(state.targetHeight * scaleY, 180, 460);
+  const buildingHeightPx = clamp(state.targetHeight * scaleY, 160, 420);
 
   svg.buildingRect.setAttribute("x", String(buildingX));
   svg.buildingRect.setAttribute("y", String(groundY - buildingHeightPx));
   svg.buildingRect.setAttribute("height", String(buildingHeightPx));
   svg.buildingWindows.setAttribute("transform", `translate(${buildingX + 18} ${groundY - buildingHeightPx + 26})`);
-  svg.facadeLabel.setAttribute("x", String(buildingX));
+  svg.facadeLabel.setAttribute("x", String(buildingX - 8));
   svg.facadeLabel.setAttribute("y", String(groundY - buildingHeightPx - 10));
+  svg.facadeLabel.setAttribute("text-anchor", "end");
 
   svg.lidarTick.setAttribute("y1", String(lidarY));
   svg.lidarTick.setAttribute("y2", String(lidarY));
@@ -127,7 +128,7 @@ function updateVisuals(state) {
   svg.centerBeam.setAttribute("y2", String(centerY));
 
   svg.mastBody.setAttribute("y", String(mastTopY));
-  svg.mastBody.setAttribute("height", String(Math.max(40, 498 - mastTopY)));
+  svg.mastBody.setAttribute("height", String(Math.max(40, roofY + 96 - mastTopY)));
   svg.cameraPod.setAttribute("y", String(cameraY - 18));
   svg.cameraPodLabel.setAttribute("x", String(544));
   svg.cameraPodLabel.setAttribute("y", String(cameraY + 4));
@@ -140,12 +141,12 @@ function updateVisuals(state) {
   svg.lidarLeft.setAttribute("transform", `rotate(${rotation} 380 ${lidarY})`);
   svg.lidarRight.setAttribute("transform", `rotate(${rotation} 620 ${lidarY})`);
 
-  const bodyY = roofY + 292;
-  const cabY = roofY + 190;
-  const deckY = roofY + 272;
-  const towerY = roofY + 124;
+  const cabY = roofY + 10;
+  const bodyY = roofY + 112;
+  const deckY = roofY + 92;
+  const towerY = roofY - 56;
   const towerHeight = bodyY - towerY;
-  const wheelY = roofY + 388;
+  const wheelY = bodyY + 96;
 
   svg.truckBody.setAttribute("y", String(bodyY));
   svg.truckCab.setAttribute("y", String(cabY));
@@ -160,13 +161,13 @@ function updateVisuals(state) {
   svg.towerLeftRear.setAttribute("height", String(towerHeight));
   svg.towerRightFront.setAttribute("height", String(towerHeight));
   svg.towerRightRear.setAttribute("height", String(towerHeight));
-  svg.rigRailLeft.setAttribute("y", String(roofY + 152));
-  svg.rigRailRight.setAttribute("y", String(roofY + 190));
+  svg.rigRailLeft.setAttribute("y", String(roofY - 28));
+  svg.rigRailRight.setAttribute("y", String(roofY + 10));
   svg.wheelFrontOuter.setAttribute("cy", String(wheelY));
   svg.wheelFrontInner.setAttribute("cy", String(wheelY));
   svg.wheelRearOuter.setAttribute("cy", String(wheelY));
   svg.wheelRearInner.setAttribute("cy", String(wheelY));
-  svg.truckLabel.setAttribute("y", String(roofY + 92));
+  svg.truckLabel.setAttribute("y", String(roofY - 88));
   outputs.roofDimLabel.textContent = `${state.vehicleHeight.toFixed(2)} m`;
   outputs.targetDimLabel.textContent = `${state.targetHeight.toFixed(1)} m`;
 }

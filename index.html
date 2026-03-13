@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mini Truck Survey Rig Calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="page">
+    <section class="hero panel">
+      <div class="hero-copy">
+        <p class="eyebrow">Mobile Mapping For Indian Roads</p>
+        <h1>Mini Truck LiDAR-Camera Fitment Calculator</h1>
+        <p class="lede">
+          Estimate vehicle fitment, LiDAR ground coverage, facade reach, and camera usability for a
+          Velodyne VLP-16 plus Insta360 Pro 2 rig mounted on a compact survey truck.
+        </p>
+        <div class="hero-notes">
+          <span>VLP-16 max range: 100 m</span>
+          <span>LiDAR tilt input: 15° up to 15° down</span>
+          <span>Indian street clearance guidance built in</span>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="reference-card">
+          <img src="1000351359.jpg" alt="Front rig reference">
+          <span>Front-view rig reference</span>
+        </div>
+        <div class="reference-card">
+          <img src="1000351347.jpg" alt="VLP-16 coordinate reference">
+          <span>VLP-16 scan geometry reference</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <section class="panel visual-panel">
+        <div class="panel-head">
+          <h2>Rig Preview</h2>
+          <p>Engineering-style front view of the vehicle rig with live dimension updates.</p>
+        </div>
+
+        <div class="schematic-wrap">
+          <svg id="schematic" viewBox="0 0 1200 760" role="img" aria-label="Mini truck lidar rig front view">
+            <defs>
+              <linearGradient id="paper" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#fbfaf7"></stop>
+                <stop offset="100%" stop-color="#f3efe7"></stop>
+              </linearGradient>
+              <linearGradient id="beamStrong" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="rgba(11, 157, 129, 0.75)"></stop>
+                <stop offset="100%" stop-color="rgba(11, 157, 129, 0.05)"></stop>
+              </linearGradient>
+              <linearGradient id="beamSoft" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="rgba(217, 74, 16, 0.72)"></stop>
+                <stop offset="100%" stop-color="rgba(217, 74, 16, 0.05)"></stop>
+              </linearGradient>
+            </defs>
+
+            <rect x="0" y="0" width="1200" height="760" fill="url(#paper)"></rect>
+            <rect x="0" y="618" width="1200" height="142" fill="#f8f4ec"></rect>
+            <line x1="0" y1="620" x2="1200" y2="620" stroke="#2b57d6" stroke-width="4"></line>
+
+            <g id="axisGroup">
+              <line x1="1030" y1="208" x2="1030" y2="88" stroke="#eb2424" stroke-width="12"></line>
+              <polygon points="1030,72 1014,104 1046,104" fill="#eb2424"></polygon>
+              <line x1="1030" y1="208" x2="1126" y2="208" stroke="#eb2424" stroke-width="12"></line>
+              <polygon points="1142,208 1110,192 1110,224" fill="#eb2424"></polygon>
+              <text x="1048" y="96" class="axis-text">Z</text>
+              <text x="1100" y="194" class="axis-text">Y</text>
+            </g>
+
+            <g id="buildingGroup">
+              <rect id="buildingRect" x="822" y="160" width="120" height="460" rx="3" fill="#d6d3cd"></rect>
+              <g id="buildingWindows" fill="#bcb6ac" opacity="0.75">
+                <rect x="18" y="25" width="18" height="32"></rect>
+                <rect x="48" y="25" width="18" height="32"></rect>
+                <rect x="18" y="72" width="18" height="32"></rect>
+                <rect x="48" y="72" width="18" height="32"></rect>
+                <rect x="18" y="119" width="18" height="32"></rect>
+                <rect x="48" y="119" width="18" height="32"></rect>
+              </g>
+              <text id="facadeLabel" x="760" y="92" class="svg-label">Target facade</text>
+            </g>
+
+            <g id="truckGroup">
+              <rect id="truckBody" x="290" y="506" width="420" height="88" rx="20" fill="#eef2f6" stroke="#2d3035" stroke-width="3"></rect>
+              <rect id="truckCab" x="332" y="404" width="336" height="116" rx="18" fill="#f5f7fb" stroke="#2d3035" stroke-width="3"></rect>
+              <rect id="truckWindow" x="366" y="426" width="108" height="46" rx="6" fill="#dceef7" stroke="#2d3035" stroke-width="2"></rect>
+              <rect id="truckBed" x="526" y="426" width="108" height="46" rx="6" fill="#dceef7" stroke="#2d3035" stroke-width="2"></rect>
+              <rect id="rigDeck" x="316" y="486" width="368" height="12" rx="4" fill="#1d2c36"></rect>
+              <rect id="towerLeftFront" x="326" y="338" width="14" height="160" rx="4" fill="#60656b"></rect>
+              <rect id="towerLeftRear" x="378" y="338" width="14" height="160" rx="4" fill="#60656b"></rect>
+              <rect id="towerRightFront" x="660" y="338" width="14" height="160" rx="4" fill="#60656b"></rect>
+              <rect id="towerRightRear" x="608" y="338" width="14" height="160" rx="4" fill="#60656b"></rect>
+              <rect id="rigRailLeft" x="340" y="366" width="320" height="8" rx="3" fill="#737d85"></rect>
+              <rect id="rigRailRight" x="340" y="404" width="320" height="8" rx="3" fill="#737d85"></rect>
+              <circle id="wheelFrontOuter" cx="370" cy="602" r="42" fill="#202020"></circle>
+              <circle id="wheelFrontInner" cx="370" cy="602" r="18" fill="#909090"></circle>
+              <circle id="wheelRearOuter" cx="630" cy="602" r="42" fill="#202020"></circle>
+              <circle id="wheelRearInner" cx="630" cy="602" r="18" fill="#909090"></circle>
+              <rect id="mastBody" x="490" y="210" width="20" height="288" rx="7" fill="#48545e"></rect>
+              <rect id="cameraPod" x="474" y="176" width="52" height="34" rx="8" fill="#ff8f3f" stroke="#2d3035" stroke-width="2"></rect>
+              <rect id="lidarLeft" x="360" y="456" width="40" height="24" rx="4" fill="#fbfdff" stroke="#2d3035" stroke-width="2"></rect>
+              <rect id="lidarRight" x="600" y="456" width="40" height="24" rx="4" fill="#fbfdff" stroke="#2d3035" stroke-width="2"></rect>
+              <text id="truckLabel" x="292" y="306" class="svg-label">Mini truck survey rig</text>
+              <text id="lidarLeftLabel" x="334" y="448" class="svg-small">LiDAR 1</text>
+              <text id="lidarRightLabel" x="574" y="448" class="svg-small">LiDAR 2</text>
+              <text id="cameraPodLabel" x="544" y="196" class="svg-small">CAMERA</text>
+            </g>
+
+            <g id="beamLayer">
+              <path id="beamUpper" fill="url(#beamStrong)"></path>
+              <path id="beamLower" fill="url(#beamSoft)"></path>
+              <line id="centerBeam" stroke="#0b9d81" stroke-width="2.5" stroke-dasharray="8 6"></line>
+            </g>
+
+            <g id="measurements" stroke="#bf2f2f" stroke-width="2" fill="none">
+              <line x1="110" y1="620" x2="110" y2="178"></line>
+              <line x1="100" y1="620" x2="120" y2="620"></line>
+              <line id="lidarTick" x1="100" y1="456" x2="120" y2="456"></line>
+              <line id="cameraTick" x1="100" y1="176" x2="120" y2="176"></line>
+              <text id="lidarHeightLabel" x="28" y="460" class="svg-small red-text">LiDAR</text>
+              <text id="cameraHeightLabel" x="24" y="180" class="svg-small red-text">Camera</text>
+
+              <line id="offsetLine" x1="500" y1="650" x2="822" y2="650"></line>
+              <line x1="500" y1="642" x2="500" y2="658"></line>
+              <line x1="822" y1="642" x2="822" y2="658"></line>
+              <text id="offsetLabel" x="600" y="682" class="svg-small red-text">Facade offset</text>
+            </g>
+
+            <g id="dimensionText">
+              <text x="180" y="256" class="svg-dim">Vehicle Roof Height</text>
+              <text x="176" y="286" class="svg-dim" id="roofDimLabel">1.85 m</text>
+              <text x="874" y="138" class="svg-dim">Target Facade</text>
+              <text x="874" y="168" class="svg-dim" id="targetDimLabel">12.0 m</text>
+            </g>
+          </svg>
+        </div>
+      </section>
+
+      <form class="panel controls" id="calc-form">
+        <div class="panel-head">
+          <h2>Inputs</h2>
+          <p>Values are tuned for small Indian survey vehicles in dense urban roads.</p>
+        </div>
+
+        <div class="input-grid">
+          <label>
+            <span>Vehicle roof height</span>
+            <input id="vehicleHeight" type="number" min="1.5" max="3.5" step="0.05" value="1.85">
+            <small>Height of truck roof from road, in metres.</small>
+          </label>
+
+          <label>
+            <span>Mast rise above roof</span>
+            <input id="mastRise" type="number" min="0.1" max="1.5" step="0.05" value="0.75">
+            <small>Additional rig structure above the roof.</small>
+          </label>
+
+          <label>
+            <span>LiDAR center height</span>
+            <input id="lidarHeight" type="number" min="1.8" max="3.5" step="0.05" value="2.6">
+            <small>Road to LiDAR optical center.</small>
+          </label>
+
+          <label>
+            <span>Camera center height</span>
+            <input id="cameraHeight" type="number" min="1.8" max="3.8" step="0.05" value="2.8">
+            <small>Road to Insta360 Pro 2 center.</small>
+          </label>
+
+          <label>
+            <span>LiDAR tilt angle</span>
+            <input id="tilt" type="number" min="-15" max="15" step="1" value="10">
+            <small>Negative tilts point upward, positive tilts point downward.</small>
+          </label>
+
+          <label>
+            <span>Building offset from vehicle centerline</span>
+            <input id="buildingOffset" type="number" min="2" max="40" step="0.5" value="8">
+            <small>Approximate lateral distance to facade.</small>
+          </label>
+
+          <label>
+            <span>Target facade height</span>
+            <input id="targetHeight" type="number" min="3" max="60" step="0.5" value="12">
+            <small>Height of building zone you want to see clearly.</small>
+          </label>
+
+          <label>
+            <span>Survey lane width</span>
+            <input id="roadWidth" type="number" min="2.5" max="18" step="0.5" value="6">
+            <small>Useful for narrow street fitment warnings.</small>
+          </label>
+        </div>
+      </form>
+    </section>
+
+    <section class="results-grid">
+      <article class="panel metric-card">
+        <h3>Total rig height</h3>
+        <p class="metric" id="rigHeightMetric">2.60 m</p>
+        <p id="heightMessage" class="support-text"></p>
+      </article>
+
+      <article class="panel metric-card">
+        <h3>Nearest ground hit</h3>
+        <p class="metric" id="groundHitMetric">6.0 m</p>
+        <p class="support-text">Distance from vehicle where the lowest VLP-16 beam first intersects the road, if any.</p>
+      </article>
+
+      <article class="panel metric-card">
+        <h3>Facade height window</h3>
+        <p class="metric" id="facadeWindowMetric">0.7 m to 5.5 m</p>
+        <p class="support-text">Approximate vertical span intersected at the selected building offset.</p>
+      </article>
+
+      <article class="panel metric-card">
+        <h3>Camera usability</h3>
+        <p class="metric" id="cameraRangeMetric">5 m to 30 m</p>
+        <p id="cameraMessage" class="support-text"></p>
+      </article>
+    </section>
+
+    <section class="panel insights">
+      <div class="panel-head">
+        <h2>Field Guidance</h2>
+        <p>Outputs are intended for building data collection, not safety certification.</p>
+      </div>
+
+      <div class="insight-columns">
+        <div>
+          <h3>What the LiDAR can cover</h3>
+          <ul id="lidarInsights"></ul>
+        </div>
+        <div>
+          <h3>Recommended for Indian roads</h3>
+          <ul id="roadInsights"></ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

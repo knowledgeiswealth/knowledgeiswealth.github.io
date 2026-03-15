@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor Fusion - Mobile Mapping Vehicle (Front View)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #fafafa;
+            --fg: #1a1a2e;
+            --muted: #6b7280;
+            --accent: #ea580c;
+            --lidar1: #dc2626;
+            --lidar2: #2563eb;
+            --camera: #7c3aed;
+            --imu: #059669;
+            --card: #ffffff;
+            --border: #e5e7eb;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            line-height: 1.6;
+        }
+
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+        .header {
+            text-align: center;
+            padding: 30px 20px;
+            background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%);
+            color: white;
+            margin: -20px -20px 25px -20px;
+        }
+
+        .header h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: 8px; }
+        .header p { font-size: 0.95rem; opacity: 0.95; }
+
+        .section {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            border: 1px solid var(--border);
+        }
+
+        .section h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section h2 .icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+
+        .canvas-container {
+            background: #87CEEB;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid var(--border);
+        }
+
+        .canvas-container canvas { display: block; width: 100%; height: auto; }
+
+        .controls {
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .control-group { margin-bottom: 14px; }
+        .control-group:last-child { margin-bottom: 0; }
+
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .control-group label span {
+            font-family: 'JetBrains Mono', monospace;
+            background: #e5e7eb;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e5e7eb;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .control-group small { color: var(--muted); font-size: 0.7rem; }
+
+        .info-card {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            padding: 14px;
+            border-radius: 12px;
+            border-left: 4px solid var(--accent);
+        }
+
+        .info-card h4 { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 4px; }
+        .info-card p { font-size: 1.1rem; font-weight: 600; }
+        .info-card small { display: block; margin-top: 4px; color: var(--muted); font-size: 0.75rem; }
+
+        .sensor-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+
+        .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .legend-dot.lidar1 { background: var(--lidar1); }
+        .legend-dot.lidar2 { background: var(--lidar2); }
+        .legend-dot.camera { background: var(--camera); }
+
+        .side-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            margin-left: 4px;
+        }
+        .side-left { background: #fee2e2; color: #991b1b; }
+        .side-right { background: #dbeafe; color: #1e40af; }
+
+        .floor-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+
+        .floor-table th, .floor-table td {
+            padding: 8px 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .floor-table th {
+            background: #f1f5f9;
+            font-weight: 600;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+        }
+
+        .coverage-good { color: #10b981; font-weight: 500; }
+        .coverage-poor { color: #dc2626; font-weight: 500; }
+
+        .data-formats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+        @media (max-width: 600px) { .data-formats { grid-template-columns: 1fr; } }
+
+        .format-card { padding: 14px; border-radius: 12px; text-align: center; }
+        .format-card.lidar { background: linear-gradient(135deg, #fef2f2, #fee2e2); border: 2px solid var(--lidar1); }
+        .format-card.camera { background: linear-gradient(135deg, #f5f3ff, #ede9fe); border: 2px solid var(--camera); }
+        .format-card.imu { background: linear-gradient(135deg, #ecfdf5, #d1fae5); border: 2px solid var(--imu); }
+
+        .tips-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+        .tip-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            border-left: 4px solid var(--accent);
+        }
+
+        .tip-card h4 { font-weight: 600; margin-bottom: 6px; font-size: 0.9rem; }
+        .tip-card p { font-size: 0.8rem; color: var(--muted); }
+
+        .footer {
+            text-align: center;
+            padding: 16px;
+            color: var(--muted);
+            font-size: 0.8rem;
+            border-top: 1px solid var(--border);
+            margin-top: 20px;
+        }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 12px; }
+        @media (max-width: 600px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+
+        .stat-box {
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .stat-box h4 { font-size: 0.7rem; color: var(--muted); margin-bottom: 4px; }
+        .stat-box p { font-size: 1rem; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚗 Mobile Mapping Vehicle - Front View</h1>
+            <p>Dual LiDAR Scanning Both Sides of the Road | View from Behind Vehicle</p>
+        </div>
+
+        <!-- Main Visualization -->
+        <div class="section">
+            <h2>
+                <span class="icon" style="background: linear-gradient(135deg, var(--lidar1), var(--lidar2));">📡</span>
+                Road Scanning - Fronto-Parallel View
+            </h2>
+
+            <div class="grid-2">
+                <div>
+                    <div class="canvas-container">
+                        <canvas id="sceneCanvas" width="600" height="500"></canvas>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.75rem; color: var(--muted);">
+                        <span>View: Looking forward from behind vehicle</span>
+                        <span>Adjust sliders to see changes</span>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="controls">
+                        <h3 style="margin-bottom: 14px; font-size: 0.95rem;">⚙️ Adjust Parameters</h3>
+
+                        <div class="control-group">
+                            <label>Vehicle Position <span id="vehiclePosValue">Center</span></label>
+                            <input type="range" id="vehiclePosSlider" min="-3" max="3" step="0.5" value="0">
+                            <small>Move left (-) or right (+) within road</small>
+                        </div>
+
+                        <div class="control-group">
+                            <label>Road Width <span id="roadWidthValue">10m</span></label>
+                            <input type="range" id="roadWidthSlider" min="4" max="18" step="0.5" value="10">
+                            <small>Typical Indian urban: 6-12m</small>
+                        </div>
+
+                        <div class="control-group">
+                            <label>Building Setback <span id="setbackValue">1.5m</span></label>
+                            <input type="range" id="setbackSlider" min="0" max="5" step="0.5" value="1.5">
+                            <small>Distance from road edge</small>
+                        </div>
+
+                        <div class="control-group">
+                            <label>Left Building <span id="leftFloorsValue">G+3</span></label>
+                            <input type="range" id="leftFloorsSlider" min="1" max="8" step="1" value="4">
+                        </div>
+
+                        <div class="control-group">
+                            <label>Right Building <span id="rightFloorsValue">G+2</span></label>
+                            <input type="range" id="rightFloorsSlider" min="1" max="8" step="1" value="3">
+                        </div>
+
+                        <div class="control-group">
+                            <label>Jig Height <span id="heightValue">1.5m</span></label>
+                            <input type="range" id="heightSlider" min="1" max="2.5" step="0.1" value="1.5">
+                            <small>Height from ground to base</small>
+                        </div>
+
+                        <div class="control-group">
+                            <label>LiDAR Tilt <span id="tiltValue">0°</span></label>
+                            <input type="range" id="tiltSlider" min="-15" max="15" step="1" value="0">
+                            <small>Negative = down, Positive = up</small>
+                        </div>
+
+                        <div class="control-group" style="margin-top: 12px;">
+                            <label style="flex-wrap: wrap; gap: 8px;">
+                                <input type="checkbox" id="showLidar1" checked> LiDAR 1 (LEFT →)
+                            </label>
+                            <label style="flex-wrap: wrap; gap: 8px;">
+                                <input type="checkbox" id="showLidar2" checked> LiDAR 2 (RIGHT →)
+                            </label>
+                            <label style="flex-wrap: wrap; gap: 8px;">
+                                <input type="checkbox" id="showCamera" checked> Camera FOV
+                            </label>
+                            <label style="flex-wrap: wrap; gap: 8px;">
+                                <input type="checkbox" id="showLabels" checked> Labels
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <h4>LiDAR Height</h4>
+                            <p id="lidarHeightDisplay">--</p>
+                        </div>
+                        <div class="stat-box">
+                            <h4>Camera Height</h4>
+                            <p id="cameraHeightDisplay">--</p>
+                        </div>
+                        <div class="stat-box">
+                            <h4>Left Distance</h4>
+                            <p id="leftDistDisplay">--</p>
+                        </div>
+                        <div class="stat-box">
+                            <h4>Right Distance</h4>
+                            <p id="rightDistDisplay">--</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coverage Tables -->
+        <div class="section">
+            <h2>
+                <span class="icon" style="background: var(--lidar1);">📊</span>
+                Floor Coverage Analysis
+            </h2>
+
+            <div class="grid-2">
+                <div>
+                    <h3 style="font-size: 0.9rem; margin-bottom: 10px; color: var(--lidar1);">
+                        ← Left Building (LiDAR 1)
+                    </h3>
+                    <table class="floor-table">
+                        <thead><tr><th>Floor</th><th>Height</th><th>Angle Range</th><th>Coverage</th></tr></thead>
+                        <tbody id="leftFloorTable"></tbody>
+                    </table>
+                </div>
+                <div>
+                    <h3 style="font-size: 0.9rem; margin-bottom: 10px; color: var(--lidar2);">
+                        Right Building (LiDAR 2) →
+                    </h3>
+                    <table class="floor-table">
+                        <thead><tr><th>Floor</th><th>Height</th><th>Angle Range</th><th>Coverage</th></tr></thead>
+                        <tbody id="rightFloorTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sensor Configuration -->
+        <div class="section">
+            <h2>
+                <span class="icon" style="background: var(--accent);">📐</span>
+                Sensor Configuration
+            </h2>
+
+            <div class="sensor-legend">
+                <div class="legend-item">
+                    <div class="legend-dot lidar1"></div>
+                    <span>LiDAR 1 <span class="side-badge side-left">Scans LEFT</span></span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot lidar2"></div>
+                    <span>LiDAR 2 <span class="side-badge side-right">Scans RIGHT</span></span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot camera"></div>
+                    <span>Camera (360° panoramic)</span>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="info-card" style="background: linear-gradient(135deg, #fef2f2, #fee2e2); border-left-color: var(--lidar1);">
+                    <h4>LiDAR 1 (Left Side)</h4>
+                    <p>493mm from center</p>
+                    <small>Height: 521.7mm | Scans LEFT building</small>
+                </div>
+                <div class="info-card" style="background: linear-gradient(135deg, #eff6ff, #dbeafe); border-left-color: var(--lidar2);">
+                    <h4>LiDAR 2 (Right Side)</h4>
+                    <p>493mm from center</p>
+                    <small>Height: 521.7mm | Scans RIGHT building</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Formats -->
+        <div class="section">
+            <h2>
+                <span class="icon" style="background: var(--imu);">📁</span>
+                Output Data Formats
+            </h2>
+            <div class="data-formats">
+                <div class="format-card lidar">
+                    <h4>📡</h4>
+                    <p><strong>LiDAR Point Cloud</strong></p>
+                    <small>.pcap / .ply</small>
+                </div>
+                <div class="format-card camera">
+                    <h4>📷</h4>
+                    <p><strong>360° Panoramic</strong></p>
+                    <small>.jpg / .png</small>
+                </div>
+                <div class="format-card imu">
+                    <h4>📊</h4>
+                    <p><strong>IMU + GPS</strong></p>
+                    <small>.csv</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tips -->
+        <div class="section">
+            <h2>
+                <span class="icon" style="background: #f59e0b;">💡</span>
+                Practical Tips
+            </h2>
+            <div class="tips-grid">
+                <div class="tip-card">
+                    <h4>🛣️ Narrow Roads (< 6m)</h4>
+                    <p>Keep vehicle centered. Both LiDARs have good coverage. Use 0° tilt.</p>
+                </div>
+                <div class="tip-card">
+                    <h4>🏢 Wide Roads (> 12m)</h4>
+                    <p>Drive closer to buildings. Use +5° to +10° tilt for upper floors.</p>
+                </div>
+                <div class="tip-card">
+                    <h4>🏙️ Tall Buildings</h4>
+                    <p>Use +10° to +15° tilt. Reduce speed for denser point clouds.</p>
+                </div>
+                <div class="tip-card">
+                    <h4>🚗 Optimal Speed</h4>
+                    <p>10-20 km/h for good coverage. Slower = more points per area.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Why Camera Alone Cannot Measure Height -->
+        <div class="section">
+            <h2>
+                <span class="icon" style="background: linear-gradient(135deg, var(--camera), #ef4444);">📷</span>
+                Why Camera Alone Cannot Measure Building Height
+            </h2>
+
+            <p style="margin-bottom: 16px; color: var(--muted);">
+                A single camera image cannot directly determine the real height of a building. Here's why:
+            </p>
+
+            <div class="grid-2" style="margin-bottom: 20px;">
+                <div>
+                    <h3 style="font-size: 0.95rem; margin-bottom: 12px; color: #dc2626;">❌ Limitations of Monocular Vision</h3>
+
+                    <div style="background: #fef2f2; padding: 16px; border-radius: 12px; margin-bottom: 12px; border-left: 4px solid #dc2626;">
+                        <h4 style="font-size: 0.85rem; margin-bottom: 6px; color: #b91c1c;">1. No Depth Information</h4>
+                        <p style="font-size: 0.8rem; color: var(--muted);">
+                            A 2D image loses all depth information. Two buildings of different heights at different distances can appear the same height in pixels.
+                        </p>
+                    </div>
+
+                    <div style="background: #fef2f2; padding: 16px; border-radius: 12px; margin-bottom: 12px; border-left: 4px solid #dc2626;">
+                        <h4 style="font-size: 0.85rem; margin-bottom: 6px; color: #b91c1c;">2. Unknown Scale</h4>
+                        <p style="font-size: 0.8rem; color: var(--muted);">
+                            Without a known reference object (like a person, car, or measured feature), there's no way to convert pixels to real-world meters.
+                        </p>
+                        <code style="background: #fee2e2; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; display: block; margin-top: 8px;">
+                            Height (pixels) ≠ Height (meters) without scale factor
+                        </code>
+                    </div>
+
+                    <div style="background: #fef2f2; padding: 16px; border-radius: 12px; margin-bottom: 12px; border-left: 4px solid #dc2626;">
+                        <h4 style="font-size: 0.85rem; margin-bottom: 6px; color: #b91c1c;">3. Perspective Distortion</h4>
+                        <p style="font-size: 0.8rem; color: var(--muted);">
+                            Objects farther from the camera appear smaller. A 10m building at 5m distance looks taller than a 20m building at 30m distance.
+                        </p>
+                    </div>
+
+                    <div style="background: #fef2f2; padding: 16px; border-radius: 12px; border-left: 4px solid #dc2626;">
+                        <h4 style="font-size: 0.85rem; margin-bottom: 6px; color: #b91c1c;">4. Camera Parameters Unknown</h4>
+                        <p style="font-size: 0.8rem; color: var(--muted);">
+                            Height estimation requires: focal length, sensor size, and camera tilt angle. These must be known or calibrated precisely.
+                        </p>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 style="font-size: 0.95rem; margin-bottom: 12px; color: #16a34a;">✅ What Camera CAN Detect</h3>
+
+                    <div style="background: #f0fdf4; padding: 16px; border-radius: 12px; margin-bottom: 12px; border-left: 4px solid #16a34a;">
+                        <h4 style="font-size: 0.85rem; margin-bottom: 6px; color: #15803d;">1. Roofline Detection</h4>
+                        <p style="font-size: 0.8rem; color: var(--muted);">
+                            Camera can reliably detect where the roof edge is in the image. Combined with LiDAR, this gives the actual roof height.
+                        </p>
+                    </div>
+
+                    <div style="background: #f0fdf4; padding: 16px; border-radius: 12px; margin-bottom: 12px; border-left: 4px solid #16a34a;">
+                        <h4 style="font-size: 0.85rem; margin-bottom: 6px; color: #15803d;">2. Relative Proportions</h4>
+                        <p style="font-size: 0.8rem; color: var(--muted);">
+                            Camera can measure relative sizes (e.g., "window is 1/5th of building height"). If window height is known, building height can be estimated.
+                        </p>
+                    </div>
+
+                    <div style="background: #f0fdf4; padding: 16px; border-radius: 12px; margin-bottom: 12px; border-left: 4px solid #16a34a;">
+                        <h4 style="font-size: 0.85rem; margin-bottom: 6px; color: #15803d;">3. Floor Count</h4>
+                        <p style="font-size: 0.8rem; color: var(--muted);">
+                            Camera can count visible floors and windows. If typical floor height is known (3-4m), estimated height ≈ floors × floor_height.
+                        </p>
+                    </div>
+
+                    <div style="background: #fef3c7; padding: 16px; border-radius: 12px; border-left: 4px solid #d97706;">
+                        <h4 style="font-size: 0.85rem; margin-bottom: 6px; color: #b45309;">🔑 Key Insight: Sensor Fusion</h4>
+                        <p style="font-size: 0.8rem; color: var(--muted);">
+                            <strong>LiDAR provides accurate distance</strong> → Camera provides roofline detection → <strong>Combined = accurate height</strong>
+                        </p>
+                        <code style="background: #fde68a; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; display: block; margin-top: 8px;">
+                            H<sub>estimated</sub> = max(H<sub>LiDAR</sub>, H<sub>camera_roof</sub>)
+                        </code>
+                    </div>
+                </div>
+            </div>
+
+            <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                <h4 style="font-size: 0.85rem; margin-bottom: 8px; color: var(--fg);">📐 Height from Single Image (Requires Assumptions)</h4>
+                <p style="font-size: 0.8rem; color: var(--muted); margin-bottom: 12px;">
+                    If you <em>must</em> estimate height from a single image, you need:
+                </p>
+                <ul style="font-size: 0.8rem; color: var(--muted); margin-left: 20px;">
+                    <li><strong>Known distance</strong> to building (from GPS or other sensor)</li>
+                    <li><strong>Camera calibration</strong> (focal length, sensor size)</li>
+                    <li><strong>Camera pose</strong> (tilt angle relative to horizontal)</li>
+                    <li><strong>Formula:</strong> H<sub>real</sub> = (H<sub>pixels</sub> × distance) / f × (sensor_height / image_height)</li>
+                </ul>
+                <p style="font-size: 0.8rem; color: #dc2626; margin-top: 8px;">
+                    ⚠️ <strong>All assumptions must be accurate</strong> — small errors in distance or tilt cause large height errors.
+                </p>
+            </div>
+        </div>
+
+        <!-- Building Height Estimation -->
+        <div class="section">
+            <h2>
+                <span class="icon" style="background: linear-gradient(135deg, var(--lidar1), var(--camera));">📐</span>
+                Building Height Estimation - LiDAR + Camera Fusion
+            </h2>
+
+            <p style="margin-bottom: 16px; color: var(--muted);">
+                When LiDAR doesn't fully cover a building (limited FOV, tilt angle, distance), camera data can help estimate the complete height.
+            </p>
+
+            <div class="grid-2">
+                <div>
+                    <div class="canvas-container" style="background: linear-gradient(180deg, #1a1a2e 0%, #2d2d44 100%);">
+                        <canvas id="heightEstimationCanvas" width="450" height="350"></canvas>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.75rem; color: var(--muted);">
+                        <span>Red dots = LiDAR points (partial coverage)</span>
+                        <span>Purple line = Camera-detected roofline</span>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 style="font-size: 0.95rem; margin-bottom: 12px;">🔬 How It Works</h3>
+                    <div style="background: #f8fafc; padding: 16px; border-radius: 12px; margin-bottom: 16px;">
+                        <h4 style="font-size: 0.85rem; margin-bottom: 8px; color: var(--lidar1);">Step 1: LiDAR Point Analysis</h4>
+                        <p style="font-size: 0.8rem; color: var(--muted);">
+                            LiDAR provides accurate 3D coordinates for points it captures. The <strong>highest detected point</strong> gives a minimum building height.
+                        </p>
+                        <code style="background: #fee2e2; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; display: block; margin-top: 8px;">
+                            H<sub>LiDAR</sub> = max(Z<sub>points</sub>) = partial height
+                        </code>
+                    </div>
+
+                    <div style="background: #f5f3ff; padding: 16px; border-radius: 12px; margin-bottom: 16px;">
+                        <h4 style="font-size: 0.85rem; margin-bottom: 8px; color: var(--camera);">Step 2: Camera Roofline Detection</h4>
+                        <p style="font-size: 0.8rem; color: var(--muted);">
+                            Camera image analysis (edge detection, line detection) finds the <strong>building roofline</strong> even where LiDAR points are missing.
+                        </p>
+                        <code style="background: #ede9fe; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; display: block; margin-top: 8px;">
+                            Y<sub>roofline</sub> = edge detection in image
+                        </code>
+                    </div>
+
+                    <div style="background: #ecfdf5; padding: 16px; border-radius: 12px;">
+                        <h4 style="font-size: 0.85rem; margin-bottom: 8px; color: var(--imu);">Step 3: Fuse & Estimate</h4>
+                        <p style="font-size: 0.8rem; color: var(--muted);">
+                            Project camera roofline to 3D space using extrinsic calibration and combine with LiDAR data.
+                        </p>
+                        <code style="background: #d1fae5; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; display: block; margin-top: 8px;">
+                            H<sub>estimated</sub> = max(H<sub>LiDAR</sub>, H<sub>camera_projected</sub>)
+                        </code>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="font-size: 0.95rem; margin: 20px 0 12px;">📊 Methods for Height Estimation</h3>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                <div style="background: linear-gradient(135deg, #fef2f2, #fee2e2); padding: 14px; border-radius: 10px; border-left: 3px solid var(--lidar1);">
+                    <h4 style="font-size: 0.8rem; margin-bottom: 6px;">LiDAR Extrapolation</h4>
+                    <p style="font-size: 0.75rem; color: var(--muted);">
+                        Use highest LiDAR points + building edge slope to extrapolate total height.
+                    </p>
+                    <code style="font-size: 0.7rem; background: white; padding: 2px 6px; border-radius: 3px;">
+                        H = Z<sub>max</sub> + ΔH<sub>extrapolate</sub>
+                    </code>
+                </div>
+                <div style="background: linear-gradient(135deg, #f5f3ff, #ede9fe); padding: 14px; border-radius: 10px; border-left: 3px solid var(--camera);">
+                    <h4 style="font-size: 0.8rem; margin-bottom: 6px;">Camera Projection</h4>
+                    <p style="font-size: 0.75rem; color: var(--muted);">
+                        Detect roofline in image, project to 3D using camera extrinsics with ground plane.
+                    </p>
+                    <code style="font-size: 0.7rem; background: white; padding: 2px 6px; border-radius: 3px;">
+                        H = (Y<sub>roof</sub> - Y<sub>ground</sub>) × scale
+                    </code>
+                </div>
+                <div style="background: linear-gradient(135deg, #ecfdf5, #d1fae5); padding: 14px; border-radius: 10px; border-left: 3px solid var(--imu);">
+                    <h4 style="font-size: 0.8rem; margin-bottom: 6px;">Vanishing Point</h4>
+                    <p style="font-size: 0.75rem; color: var(--muted);">
+                        Use building edge lines to find vanishing point, estimate height from perspective.
+                    </p>
+                    <code style="font-size: 0.7rem; background: white; padding: 2px 6px; border-radius: 3px;">
+                        H = f × (v<sub>top</sub> - v<sub>bottom</sub>) / distance
+                    </code>
+                </div>
+            </div>
+
+            <h3 style="font-size: 0.95rem; margin: 20px 0 12px;">📐 Height Estimation Calculator</h3>
+            <div style="background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid var(--border);">
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+                    <div>
+                        <label style="font-size: 0.75rem; color: var(--muted); display: block; margin-bottom: 4px;">LiDAR Max Height (m)</label>
+                        <input type="number" id="lidarMaxHeight" value="8" min="1" max="30" step="0.5" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px;">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.75rem; color: var(--muted); display: block; margin-bottom: 4px;">Coverage %</label>
+                        <input type="number" id="coveragePercent" value="65" min="10" max="100" step="5" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px;">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.75rem; color: var(--muted); display: block; margin-bottom: 4px;">Camera Roofline (m)</label>
+                        <input type="number" id="cameraRoofline" value="13" min="1" max="50" step="0.5" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px;">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.75rem; color: var(--muted); display: block; margin-bottom: 4px;">Confidence Weight</label>
+                        <input type="number" id="confidenceWeight" value="0.8" min="0.5" max="1" step="0.1" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px;">
+                    </div>
+                </div>
+                <div id="heightResult" style="margin-top: 12px; padding: 12px; background: linear-gradient(135deg, var(--lidar1), var(--camera)); color: white; border-radius: 8px; text-align: center;">
+                    <h4 style="font-size: 0.85rem; margin-bottom: 4px;">Estimated Building Height</h4>
+                    <p id="estimatedHeight" style="font-size: 1.5rem; font-weight: 700; font-family: 'JetBrains Mono', monospace;">-- m</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Dual LiDAR Mobile Mapping | Velodyne VLP-16 × 2 + Insta360 Pro 2 + Xsens IMU</p>
+            <p style="margin-top: 6px; opacity: 0.7;">LiDAR 1 → LEFT Building | LiDAR 2 → RIGHT Building | Single Pass Capture</p>
+        </div>
+    </div>
+
+    <script>
+        // Jig dimensions (meters)
+        const JIG = {
+            lidarSpacingFromCenter: 0.493,
+            cameraHeightFromBase: 0.7335,
+            lidarHeightFromBase: 0.5217
+        };
+
+        // VLP-16 specs - actual channel angles from Velodyne datasheet
+        // Channel order: 0=-15°, 1=+1°, 2=-13°, 3=+3°, 4=-11°, 5=+5°, 6=-9°, 7=+7°,
+        //                8=-7°, 9=+9°, 10=-5°, 11=+11°, 12=-3°, 13=+13°, 14=-1°, 15=+15°
+        const VLP16 = {
+            verticalFov: 30,
+            // Returns all 16 channel angles in degrees (sorted for visualization)
+            getChannelAngles: function() {
+                return [-15, -13, -11, -9, -7, -5, -3, -1, +1, +3, +5, +7, +9, +11, +13, +15];
+            }
+        };
+
+        // State
+        let state = {
+            vehiclePos: 0,
+            roadWidth: 10,
+            setback: 1.5,
+            leftFloors: 4,
+            rightFloors: 3,
+            height: 1.5,
+            tilt: 0,
+            showLidar1: true,
+            showLidar2: true,
+            showCamera: true,
+            showLabels: true
+        };
+
+        // Canvas
+        const canvas = document.getElementById('sceneCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Event listeners
+        document.getElementById('vehiclePosSlider').addEventListener('input', (e) => {
+            state.vehiclePos = parseFloat(e.target.value);
+            const posText = state.vehiclePos === 0 ? 'Center' : (state.vehiclePos < 0 ? `Left ${Math.abs(state.vehiclePos)}m` : `Right ${state.vehiclePos}m`);
+            document.getElementById('vehiclePosValue').textContent = posText;
+            draw();
+        });
+
+        document.getElementById('roadWidthSlider').addEventListener('input', (e) => {
+            state.roadWidth = parseFloat(e.target.value);
+            document.getElementById('roadWidthValue').textContent = state.roadWidth + 'm';
+            draw();
+        });
+
+        document.getElementById('setbackSlider').addEventListener('input', (e) => {
+            state.setback = parseFloat(e.target.value);
+            document.getElementById('setbackValue').textContent = state.setback + 'm';
+            draw();
+        });
+
+        document.getElementById('leftFloorsSlider').addEventListener('input', (e) => {
+            state.leftFloors = parseInt(e.target.value);
+            document.getElementById('leftFloorsValue').textContent = 'G+' + (state.leftFloors - 1);
+            draw();
+        });
+
+        document.getElementById('rightFloorsSlider').addEventListener('input', (e) => {
+            state.rightFloors = parseInt(e.target.value);
+            document.getElementById('rightFloorsValue').textContent = 'G+' + (state.rightFloors - 1);
+            draw();
+        });
+
+        document.getElementById('heightSlider').addEventListener('input', (e) => {
+            state.height = parseFloat(e.target.value);
+            document.getElementById('heightValue').textContent = state.height.toFixed(1) + 'm';
+            draw();
+        });
+
+        document.getElementById('tiltSlider').addEventListener('input', (e) => {
+            state.tilt = parseInt(e.target.value);
+            document.getElementById('tiltValue').textContent = state.tilt + '°';
+            draw();
+        });
+
+        document.getElementById('showLidar1').addEventListener('change', (e) => { state.showLidar1 = e.target.checked; draw(); });
+        document.getElementById('showLidar2').addEventListener('change', (e) => { state.showLidar2 = e.target.checked; draw(); });
+        document.getElementById('showCamera').addEventListener('change', (e) => { state.showCamera = e.target.checked; draw(); });
+        document.getElementById('showLabels').addEventListener('change', (e) => { state.showLabels = e.target.checked; draw(); });
+
+        function draw() {
+            const w = canvas.width;
+            const h = canvas.height;
+
+            // Clear
+            ctx.clearRect(0, 0, w, h);
+
+            // Scale: horizontal 1m = 30 pixels, vertical 1m = 10 pixels (to match building heights)
+            const scale = 30;
+            const vScale = 10;  // Vertical scale matches building: groundFloorHeight(40px)/4m = 10px/m
+            const groundY = h - 80;
+            const horizonY = 50;
+
+            // Sky
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY + 50);
+            skyGrad.addColorStop(0, '#87CEEB');
+            skyGrad.addColorStop(1, '#E0F4FF');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, w, horizonY + 50);
+
+            // Road (trapezoid)
+            const roadBottomWidth = state.roadWidth * scale;
+            const roadTopWidth = state.roadWidth * scale * 0.6;
+            const roadCenterX = w / 2;
+
+            // Road surface
+            ctx.fillStyle = '#505050';
+            ctx.beginPath();
+            ctx.moveTo(roadCenterX - roadBottomWidth / 2, groundY);
+            ctx.lineTo(roadCenterX - roadTopWidth / 2, horizonY);
+            ctx.lineTo(roadCenterX + roadTopWidth / 2, horizonY);
+            ctx.lineTo(roadCenterX + roadBottomWidth / 2, groundY);
+            ctx.closePath();
+            ctx.fill();
+
+            // Road edges
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(roadCenterX - roadBottomWidth / 2, groundY);
+            ctx.lineTo(roadCenterX - roadTopWidth / 2, horizonY);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(roadCenterX + roadBottomWidth / 2, groundY);
+            ctx.lineTo(roadCenterX + roadTopWidth / 2, horizonY);
+            ctx.stroke();
+
+            // Center line (dashed)
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([15, 10]);
+            ctx.beginPath();
+            ctx.moveTo(roadCenterX, groundY);
+            ctx.lineTo(roadCenterX, horizonY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Ground on sides (grass)
+            ctx.fillStyle = '#90EE90';
+            ctx.beginPath();
+            ctx.moveTo(0, groundY);
+            ctx.lineTo(0, horizonY);
+            ctx.lineTo(roadCenterX - roadTopWidth / 2, horizonY);
+            ctx.lineTo(roadCenterX - roadBottomWidth / 2, groundY);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(w, groundY);
+            ctx.lineTo(w, horizonY);
+            ctx.lineTo(roadCenterX + roadTopWidth / 2, horizonY);
+            ctx.lineTo(roadCenterX + roadBottomWidth / 2, groundY);
+            ctx.closePath();
+            ctx.fill();
+
+            // Buildings
+            const leftBuildingX = roadCenterX - roadBottomWidth / 2 - state.setback * scale;
+            const rightBuildingX = roadCenterX + roadBottomWidth / 2 + state.setback * scale;
+
+            drawBuildingFront(ctx, leftBuildingX - 60, groundY, 60, state.leftFloors, 'left');
+            drawBuildingFront(ctx, rightBuildingX, groundY, 60, state.rightFloors, 'right');
+
+            // Vehicle
+            const vehicleX = roadCenterX + state.vehiclePos * scale;
+
+            // Calculate sensor Y position based on jig height
+            const jigHeightPixels = state.height * vScale;
+            const vehicleHeight = 35;
+            const sensorY = groundY - vehicleHeight - jigHeightPixels - 16;
+
+            drawVehicleFront(ctx, vehicleX, groundY, state.height, sensorY, vScale);
+
+            // Calculate distances from each LiDAR to buildings
+            // LiDAR offset: left LiDAR is 0.493m LEFT of center, right LiDAR is 0.493m RIGHT of center
+            // This means each LiDAR is CLOSER to its respective building by 0.493m
+            const lidarOffset = JIG.lidarSpacingFromCenter; // 0.493m
+
+            // Left LiDAR to left building distance
+            const leftDist = (state.roadWidth / 2) + state.setback - state.vehiclePos - lidarOffset;
+
+            // Right LiDAR to right building distance
+            const rightDist = (state.roadWidth / 2) + state.setback + state.vehiclePos - lidarOffset;
+
+            // Sensor height for height calculations
+            const sensorHeight = state.height + JIG.lidarHeightFromBase;
+
+            // Variables to store min/max heights from LiDAR FOV
+            let leftFov = { minHeight: 0, maxHeight: 0 };
+            let rightFov = { minHeight: 0, maxHeight: 0 };
+
+            if (state.showLidar1) {
+                // Left LiDAR hits the RIGHT edge of left building (at leftBuildingX)
+                leftFov = drawLidarBeamsFront(ctx, vehicleX - 15, sensorY, 'left', state.tilt, scale, vScale, leftDist, sensorHeight, groundY, leftBuildingX);
+            }
+
+            if (state.showLidar2) {
+                // Right LiDAR hits the LEFT edge of right building (at rightBuildingX)
+                rightFov = drawLidarBeamsFront(ctx, vehicleX + 15, sensorY, 'right', state.tilt, scale, vScale, rightDist, sensorHeight, groundY, rightBuildingX);
+            }
+
+            if (state.showCamera) {
+                drawCameraFOVFront(ctx, vehicleX, sensorY - 12);
+            }
+
+            // Labels
+            if (state.showLabels) {
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 11px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(`Road: ${state.roadWidth}m`, roadCenterX, groundY + 20);
+
+                ctx.fillStyle = '#dc2626';
+                ctx.font = 'bold 12px Inter, sans-serif';
+                ctx.fillText(`← LEFT`, leftBuildingX - 30, groundY - state.leftFloors * 30 - 15);
+                ctx.fillStyle = '#fff';
+                ctx.font = '10px Inter, sans-serif';
+                ctx.fillText(`G+${state.leftFloors - 1}`, leftBuildingX - 30, groundY - state.leftFloors * 30);
+
+                ctx.fillStyle = '#2563eb';
+                ctx.font = 'bold 12px Inter, sans-serif';
+                ctx.fillText(`RIGHT →`, rightBuildingX + 30, groundY - state.rightFloors * 30 - 15);
+                ctx.fillStyle = '#fff';
+                ctx.font = '10px Inter, sans-serif';
+                ctx.fillText(`G+${state.rightFloors - 1}`, rightBuildingX + 30, groundY - state.rightFloors * 30);
+
+                ctx.fillStyle = '#fbbf24';
+                ctx.font = '10px JetBrains Mono, monospace';
+                ctx.fillText(`${leftDist.toFixed(1)}m`, vehicleX - 70, groundY + 35);
+                ctx.fillText(`${rightDist.toFixed(1)}m`, vehicleX + 70, groundY + 35);
+
+                // Tilt indicator
+                if (state.tilt !== 0) {
+                    ctx.fillStyle = '#ea580c';
+                    ctx.font = 'bold 10px JetBrains Mono, monospace';
+                    ctx.fillText(`Tilt: ${state.tilt}°`, vehicleX, groundY + 50);
+                }
+            }
+
+            // Update displays
+            document.getElementById('lidarHeightDisplay').textContent = sensorHeight.toFixed(2) + 'm';
+            document.getElementById('cameraHeightDisplay').textContent = (state.height + JIG.cameraHeightFromBase).toFixed(2) + 'm';
+            document.getElementById('leftDistDisplay').textContent = leftDist.toFixed(1) + 'm';
+            document.getElementById('rightDistDisplay').textContent = rightDist.toFixed(1) + 'm';
+
+            // Update floor tables with height-based coverage
+            updateFloorTables(leftDist, rightDist, leftFov, rightFov);
+        }
+
+        function drawBuildingFront(ctx, x, groundY, width, floors, side) {
+            const floorHeight = 30;
+            const groundFloorHeight = 40;
+            const totalHeight = groundFloorHeight + (floors - 1) * floorHeight;
+
+            ctx.fillStyle = 'rgba(0,0,0,0.15)';
+            ctx.fillRect(x + 3, groundY - totalHeight + 3, width, totalHeight);
+
+            const gradient = ctx.createLinearGradient(x, groundY - totalHeight, x + width, groundY);
+            if (side === 'left') {
+                gradient.addColorStop(0, '#b45309');
+                gradient.addColorStop(0.5, '#d97706');
+                gradient.addColorStop(1, '#b45309');
+            } else {
+                gradient.addColorStop(0, '#1e40af');
+                gradient.addColorStop(0.5, '#3b82f6');
+                gradient.addColorStop(1, '#1e40af');
+            }
+            ctx.fillStyle = gradient;
+            ctx.fillRect(x, groundY - totalHeight, width, totalHeight);
+
+            ctx.strokeStyle = side === 'left' ? '#92400e' : '#1e3a8a';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, groundY - totalHeight, width, totalHeight);
+
+            ctx.fillStyle = 'rgba(135, 206, 250, 0.7)';
+            ctx.fillRect(x + 5, groundY - groundFloorHeight + 5, width - 10, groundFloorHeight - 10);
+
+            for (let f = 1; f < floors; f++) {
+                const floorY = groundY - groundFloorHeight - (f - 1) * floorHeight;
+                ctx.fillRect(x + 8, floorY - floorHeight + 8, width - 16, floorHeight - 16);
+            }
+
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 9px sans-serif';
+            ctx.textAlign = 'center';
+            const floorNames = ['G', '1', '2', '3', '4', '5', '6', '7'];
+            ctx.fillText(floorNames[0], x + width / 2, groundY - groundFloorHeight / 2 + 4);
+            for (let f = 1; f < floors; f++) {
+                const floorY = groundY - groundFloorHeight - (f - 0.5) * floorHeight;
+                ctx.fillText(floorNames[f], x + width / 2, floorY + 4);
+            }
+        }
+
+        function drawVehicleFront(ctx, x, groundY, jigHeight, sensorY, vScale) {
+            const vehicleWidth = 50;
+            const vehicleHeight = 35;
+            const jigHeightPixels = jigHeight * vScale; // Use consistent vertical scale
+
+            // Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.fillRect(x - vehicleWidth / 2 + 3, groundY - vehicleHeight + 3, vehicleWidth, vehicleHeight);
+
+            // Body
+            ctx.fillStyle = '#374151';
+            ctx.fillRect(x - vehicleWidth / 2, groundY - vehicleHeight, vehicleWidth, vehicleHeight);
+
+            // Cabin
+            ctx.fillStyle = '#1f2937';
+            ctx.beginPath();
+            ctx.moveTo(x - vehicleWidth / 2 + 5, groundY - vehicleHeight);
+            ctx.lineTo(x - vehicleWidth / 2 + 10, groundY - vehicleHeight - 15);
+            ctx.lineTo(x + vehicleWidth / 2 - 10, groundY - vehicleHeight - 15);
+            ctx.lineTo(x + vehicleWidth / 2 - 5, groundY - vehicleHeight);
+            ctx.closePath();
+            ctx.fill();
+
+            // Wheels
+            ctx.fillStyle = '#111827';
+            ctx.beginPath();
+            ctx.ellipse(x - vehicleWidth / 2 + 8, groundY - 5, 8, 5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(x + vehicleWidth / 2 - 8, groundY - 5, 8, 5, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Jig pole (height adjustable)
+            ctx.fillStyle = '#555';
+            ctx.fillRect(x - 3, groundY - vehicleHeight - jigHeightPixels, 6, jigHeightPixels);
+
+            // Sensor mount
+            ctx.fillStyle = '#4b5563';
+            ctx.fillRect(x - 12, sensorY - 8, 24, 8);
+
+            // LiDAR 1 (LEFT - Red)
+            ctx.fillStyle = '#dc2626';
+            ctx.beginPath();
+            ctx.arc(x - 15, sensorY, 7, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 6px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('L1', x - 15, sensorY + 3);
+
+            // Arrow LEFT
+            ctx.strokeStyle = '#dc2626';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x - 25, sensorY);
+            ctx.lineTo(x - 40, sensorY);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x - 35, sensorY - 5);
+            ctx.lineTo(x - 40, sensorY);
+            ctx.lineTo(x - 35, sensorY + 5);
+            ctx.stroke();
+
+            // LiDAR 2 (RIGHT - Blue)
+            ctx.fillStyle = '#2563eb';
+            ctx.beginPath();
+            ctx.arc(x + 15, sensorY, 7, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#fff';
+            ctx.fillText('L2', x + 15, sensorY + 3);
+
+            // Arrow RIGHT
+            ctx.strokeStyle = '#2563eb';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x + 25, sensorY);
+            ctx.lineTo(x + 40, sensorY);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x + 35, sensorY - 5);
+            ctx.lineTo(x + 40, sensorY);
+            ctx.lineTo(x + 35, sensorY + 5);
+            ctx.stroke();
+
+            // Camera (above LiDARs)
+            ctx.fillStyle = '#7c3aed';
+            ctx.beginPath();
+            ctx.arc(x, sensorY - 12, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 4px sans-serif';
+            ctx.fillText('C', x, sensorY - 10);
+
+            // IMU
+            ctx.fillStyle = '#059669';
+            ctx.fillRect(x + 25, sensorY - 6, 10, 10);
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 5px sans-serif';
+            ctx.fillText('I', x + 30, sensorY + 2);
+
+            // Height label
+            if (state.showLabels) {
+                ctx.fillStyle = '#fbbf24';
+                ctx.font = 'bold 9px JetBrains Mono, monospace';
+                ctx.textAlign = 'left';
+                ctx.fillText(`${jigHeight.toFixed(1)}m`, x + 45, sensorY + 5);
+            }
+        }
+
+        function drawLidarBeamsFront(ctx, x, y, direction, tilt, scale, vScale, distance, sensorHeight, groundY, buildingX) {
+            const color = direction === 'left' ? 'rgba(220, 38, 38, 0.15)' : 'rgba(37, 99, 235, 0.15)';
+            const strokeColor = direction === 'left' ? '#dc2626' : '#2563eb';
+            const fovAngle = 15; // ±15° FOV in degrees
+            const tiltRad = tilt * Math.PI / 180;
+
+            // Calculate the actual min/max heights the LiDAR can see on the building
+            // Min visible height = sensorHeight + distance * tan(tilt - 15°)
+            // Max visible height = sensorHeight + distance * tan(tilt + 15°)
+            const minAngle = (tilt - fovAngle) * Math.PI / 180;
+            const maxAngle = (tilt + fovAngle) * Math.PI / 180;
+            const minHeight = sensorHeight + distance * Math.tan(minAngle);
+            const maxHeight = sensorHeight + distance * Math.tan(maxAngle);
+
+            // Calculate beam length to ensure it reaches building
+            // Use horizontal distance * scale, extended for angular spread
+            const horizontalDist = distance * scale;
+
+            // Calculate pixel positions for hit points on building
+            const minHitY = groundY - minHeight * vScale;
+            const maxHitY = groundY - maxHeight * vScale;
+
+            ctx.save();
+            ctx.translate(x, y);
+
+            // Rotate for tilt
+            if (direction === 'left') {
+                ctx.rotate(tiltRad);
+            } else {
+                ctx.rotate(-tiltRad);
+            }
+
+            // Draw FOV cone
+            // Calculate cone radius to reach building face
+            // The cone needs to extend far enough to cover the visible range on the building
+            const coneRadius = horizontalDist * 1.5; // Extended to ensure coverage
+
+            ctx.fillStyle = color;
+            ctx.beginPath();
+
+            if (direction === 'left') {
+                ctx.moveTo(0, 0);
+                ctx.arc(0, 0, coneRadius, Math.PI - fovAngle * Math.PI / 180, Math.PI + fovAngle * Math.PI / 180);
+                ctx.closePath();
+                ctx.fill();
+
+                // Draw beam lines
+                ctx.strokeStyle = strokeColor;
+                ctx.lineWidth = 1;
+                ctx.setLineDash([3, 3]);
+                const angles = VLP16.getChannelAngles();
+                for (let i = 0; i < angles.length; i += 2) {
+                    const angle = angles[i] * Math.PI / 180 + Math.PI;
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(coneRadius * Math.cos(angle), coneRadius * Math.sin(angle));
+                    ctx.stroke();
+                }
+            } else {
+                ctx.moveTo(0, 0);
+                ctx.arc(0, 0, coneRadius, -fovAngle * Math.PI / 180, fovAngle * Math.PI / 180);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.strokeStyle = strokeColor;
+                ctx.lineWidth = 1;
+                ctx.setLineDash([3, 3]);
+                const angles = VLP16.getChannelAngles();
+                for (let i = 0; i < angles.length; i += 2) {
+                    const angle = angles[i] * Math.PI / 180;
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(coneRadius * Math.cos(angle), coneRadius * Math.sin(angle));
+                    ctx.stroke();
+                }
+            }
+
+            ctx.setLineDash([]);
+            ctx.restore();
+
+            // Draw FOV boundary lines (solid lines showing min/max reach)
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([8, 4]);
+
+            // Max FOV line (top of visible area)
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(buildingX, Math.max(10, maxHitY));
+            ctx.stroke();
+
+            // Min FOV line (bottom of visible area)
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(buildingX, Math.min(groundY + 10, minHitY));
+            ctx.stroke();
+
+            ctx.setLineDash([]);
+
+            // Draw visible range indicator on building
+            ctx.fillStyle = direction === 'left' ? 'rgba(220, 38, 38, 0.1)' : 'rgba(37, 99, 235, 0.1)';
+            ctx.fillRect(
+                direction === 'left' ? buildingX - 5 : buildingX,
+                Math.min(minHitY, maxHitY),
+                5,
+                Math.abs(maxHitY - minHitY)
+            );
+
+            // Draw height labels
+            ctx.fillStyle = strokeColor;
+            ctx.font = 'bold 10px JetBrains Mono, monospace';
+            ctx.textAlign = direction === 'left' ? 'right' : 'left';
+            const labelX = direction === 'left' ? buildingX - 8 : buildingX + 8;
+
+            // Max height label
+            ctx.fillText(`${maxHeight.toFixed(1)}m`, labelX, Math.max(20, maxHitY + 4));
+
+            // Min height label
+            if (minHeight >= 0) {
+                ctx.fillText(`${minHeight.toFixed(1)}m`, labelX, Math.min(groundY - 5, minHitY + 4));
+            }
+
+            // Draw tilt indicator
+            if (tilt !== 0) {
+                ctx.fillStyle = strokeColor;
+                ctx.font = 'bold 10px sans-serif';
+                ctx.textAlign = 'center';
+                const labelX = direction === 'left' ? x - 60 : x + 60;
+                ctx.fillText(`${tilt > 0 ? '+' : ''}${tilt}° tilt`, labelX, y - 25);
+            }
+
+            // Return min/max heights for coverage calculation
+            return { minHeight, maxHeight };
+        }
+
+        function drawCameraFOVFront(ctx, x, y) {
+            ctx.fillStyle = 'rgba(124, 58, 237, 0.08)';
+            ctx.strokeStyle = '#7c3aed';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 3]);
+
+            ctx.beginPath();
+            ctx.arc(x, y, 60, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.setLineDash([]);
+
+            ctx.fillStyle = '#7c3aed';
+            ctx.font = 'bold 9px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('360°', x, y - 65);
+        }
+
+        function updateFloorTables(leftDist, rightDist, leftFov, rightFov) {
+            const sensorHeight = state.height + JIG.lidarHeightFromBase;
+            const floorNames = ['Ground', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th'];
+            const floorHeights = [4, 7, 10, 13, 16, 19, 22, 25];
+
+            // Calculate visible height range for each LiDAR
+            // Min visible height = sensorHeight + distance * tan(tilt - 15°)
+            // Max visible height = sensorHeight + distance * tan(tilt + 15°)
+            const fovHalfAngle = 15;
+
+            function getVisibleHeightRange(distance) {
+                const minAngle = (state.tilt - fovHalfAngle) * Math.PI / 180;
+                const maxAngle = (state.tilt + fovHalfAngle) * Math.PI / 180;
+                const minHeight = sensorHeight + distance * Math.tan(minAngle);
+                const maxHeight = sensorHeight + distance * Math.tan(maxAngle);
+                return { minHeight, maxHeight };
+            }
+
+            const leftVisible = getVisibleHeightRange(leftDist);
+            const rightVisible = getVisibleHeightRange(rightDist);
+
+            // Left building - scanned by LiDAR 1
+            let leftHtml = '';
+            for (let i = 0; i < state.leftFloors; i++) {
+                const floorBottom = i === 0 ? 0 : floorHeights[i - 1];
+                const floorTop = floorHeights[i];
+                const result = checkCoverageByHeight(floorBottom, floorTop, leftVisible.minHeight, leftVisible.maxHeight);
+                const coverageClass = result.covered ? 'coverage-good' : 'coverage-poor';
+                const coverageText = result.covered ? '✓ Covered' : '✗ Not visible';
+                const floorHeightRange = `${floorBottom}-${floorTop}m`;
+                const visibleRange = `FOV: ${leftVisible.minHeight.toFixed(1)}m - ${leftVisible.maxHeight.toFixed(1)}m`;
+                const overlapInfo = result.overlap > 0 ? `Overlap: ${result.overlap.toFixed(1)}m` : 'No overlap';
+                leftHtml += `<tr>
+                    <td>${floorNames[i]}</td>
+                    <td>${floorHeightRange}</td>
+                    <td style="font-size: 0.7rem; color: #666;">${visibleRange}</td>
+                    <td style="font-size: 0.7rem; color: ${result.covered ? '#059669' : '#dc2626'};">${overlapInfo}</td>
+                    <td class="${coverageClass}">${coverageText}</td>
+                </tr>`;
+            }
+            document.getElementById('leftFloorTable').innerHTML = leftHtml;
+
+            // Right building - scanned by LiDAR 2
+            let rightHtml = '';
+            for (let i = 0; i < state.rightFloors; i++) {
+                const floorBottom = i === 0 ? 0 : floorHeights[i - 1];
+                const floorTop = floorHeights[i];
+                const result = checkCoverageByHeight(floorBottom, floorTop, rightVisible.minHeight, rightVisible.maxHeight);
+                const coverageClass = result.covered ? 'coverage-good' : 'coverage-poor';
+                const coverageText = result.covered ? '✓ Covered' : '✗ Not visible';
+                const floorHeightRange = `${floorBottom}-${floorTop}m`;
+                const visibleRange = `FOV: ${rightVisible.minHeight.toFixed(1)}m - ${rightVisible.maxHeight.toFixed(1)}m`;
+                const overlapInfo = result.overlap > 0 ? `Overlap: ${result.overlap.toFixed(1)}m` : 'No overlap';
+                rightHtml += `<tr>
+                    <td>${floorNames[i]}</td>
+                    <td>${floorHeightRange}</td>
+                    <td style="font-size: 0.7rem; color: #666;">${visibleRange}</td>
+                    <td style="font-size: 0.7rem; color: ${result.covered ? '#059669' : '#dc2626'};">${overlapInfo}</td>
+                    <td class="${coverageClass}">${coverageText}</td>
+                </tr>`;
+            }
+            document.getElementById('rightFloorTable').innerHTML = rightHtml;
+        }
+
+        function checkCoverageByHeight(floorBottom, floorTop, minHeight, maxHeight) {
+            // Check if floor falls within visible height range
+            // Floor is covered if any part of it intersects with [minHeight, maxHeight]
+            // Intersection exists if: floorBottom <= maxHeight AND floorTop >= minHeight
+
+            // Calculate overlap amount
+            const overlapBottom = Math.max(floorBottom, minHeight);
+            const overlapTop = Math.min(floorTop, maxHeight);
+            const overlap = Math.max(0, overlapTop - overlapBottom);
+
+            const covered = overlap > 0;
+
+            return {
+                covered: covered,
+                overlap: overlap,
+                minVisible: minHeight,
+                maxVisible: maxHeight
+            };
+        }
+
+        // Height Estimation Visualization
+        const heightCanvas = document.getElementById('heightEstimationCanvas');
+        const heightCtx = heightCanvas.getContext('2d');
+
+        function drawHeightEstimation() {
+            const w = heightCanvas.width;
+            const h = heightCanvas.height;
+
+            heightCtx.clearRect(0, 0, w, h);
+
+            // Background
+            const bgGrad = heightCtx.createLinearGradient(0, 0, 0, h);
+            bgGrad.addColorStop(0, '#1a1a2e');
+            bgGrad.addColorStop(1, '#2d2d44');
+            heightCtx.fillStyle = bgGrad;
+            heightCtx.fillRect(0, 0, w, h);
+
+            const groundY = h - 40;
+            const buildingX = 180;
+            const buildingWidth = 80;
+            const actualFloors = 4;
+            const floorHeight = 30;
+            const totalHeight = actualFloors * floorHeight + 20;
+
+            // Draw building
+            heightCtx.fillStyle = '#3d3d5c';
+            heightCtx.fillRect(buildingX, groundY - totalHeight, buildingWidth, totalHeight);
+
+            // Building outline
+            heightCtx.strokeStyle = '#6b7280';
+            heightCtx.lineWidth = 2;
+            heightCtx.strokeRect(buildingX, groundY - totalHeight, buildingWidth, totalHeight);
+
+            // Windows
+            heightCtx.fillStyle = 'rgba(135, 206, 250, 0.4)';
+            for (let f = 0; f < actualFloors; f++) {
+                const floorY = groundY - (f + 1) * floorHeight;
+                for (let i = 0; i < 2; i++) {
+                    heightCtx.fillRect(buildingX + 15 + i * 30, floorY + 5, 20, floorHeight - 15);
+                }
+            }
+
+            // Floor labels
+            heightCtx.fillStyle = '#fff';
+            heightCtx.font = '10px sans-serif';
+            heightCtx.textAlign = 'center';
+            const floorLabels = ['G', '1', '2', '3'];
+            for (let f = 0; f < actualFloors; f++) {
+                const floorY = groundY - (f + 0.5) * floorHeight;
+                heightCtx.fillText(floorLabels[f], buildingX + buildingWidth / 2, floorY);
+            }
+
+            // LiDAR points (partial coverage - red dots)
+            const lidarMaxHeight = parseFloat(document.getElementById('lidarMaxHeight').value) || 8;
+            const lidarPixels = Math.min(lidarMaxHeight * 10, totalHeight - 20);
+
+            heightCtx.fillStyle = '#dc2626';
+            for (let y = 0; y < lidarPixels; y += 8) {
+                for (let x = 0; x < buildingWidth - 10; x += 15) {
+                    const px = buildingX + 5 + x + Math.random() * 10;
+                    const py = groundY - y - 5 + Math.random() * 5;
+                    heightCtx.beginPath();
+                    heightCtx.arc(px, py, 2, 0, Math.PI * 2);
+                    heightCtx.fill();
+                }
+            }
+
+            // LiDAR coverage boundary
+            heightCtx.strokeStyle = '#dc2626';
+            heightCtx.lineWidth = 2;
+            heightCtx.setLineDash([5, 3]);
+            heightCtx.beginPath();
+            heightCtx.moveTo(buildingX, groundY - lidarPixels);
+            heightCtx.lineTo(buildingX + buildingWidth, groundY - lidarPixels);
+            heightCtx.stroke();
+            heightCtx.setLineDash([]);
+
+            // LiDAR max height label
+            heightCtx.fillStyle = '#dc2626';
+            heightCtx.font = 'bold 10px sans-serif';
+            heightCtx.textAlign = 'left';
+            heightCtx.fillText(`LiDAR max: ${lidarMaxHeight}m`, buildingX + buildingWidth + 10, groundY - lidarPixels + 4);
+
+            // Camera detected roofline (purple line)
+            const cameraRoofline = parseFloat(document.getElementById('cameraRoofline').value) || 13;
+            const rooflinePixels = Math.min(cameraRoofline * 10, totalHeight);
+
+            heightCtx.strokeStyle = '#7c3aed';
+            heightCtx.lineWidth = 3;
+            heightCtx.beginPath();
+            heightCtx.moveTo(buildingX - 10, groundY - rooflinePixels);
+            heightCtx.lineTo(buildingX + buildingWidth + 10, groundY - rooflinePixels);
+            heightCtx.stroke();
+
+            // Camera label
+            heightCtx.fillStyle = '#7c3aed';
+            heightCtx.font = 'bold 10px sans-serif';
+            heightCtx.textAlign = 'left';
+            heightCtx.fillText(`Camera detected: ${cameraRoofline}m`, buildingX + buildingWidth + 10, groundY - rooflinePixels + 4);
+
+            // Draw sensor icon (left side)
+            heightCtx.fillStyle = '#4b5563';
+            heightCtx.fillRect(30, groundY - 50, 40, 30);
+
+            // LiDAR icon
+            heightCtx.fillStyle = '#dc2626';
+            heightCtx.beginPath();
+            heightCtx.arc(42, groundY - 35, 8, 0, Math.PI * 2);
+            heightCtx.fill();
+            heightCtx.fillStyle = '#fff';
+            heightCtx.font = 'bold 6px sans-serif';
+            heightCtx.textAlign = 'center';
+            heightCtx.fillText('L', 42, groundY - 33);
+
+            // Camera icon
+            heightCtx.fillStyle = '#7c3aed';
+            heightCtx.beginPath();
+            heightCtx.arc(62, groundY - 35, 8, 0, Math.PI * 2);
+            heightCtx.fill();
+            heightCtx.fillStyle = '#fff';
+            heightCtx.fillText('C', 62, groundY - 33);
+
+            // LiDAR beam lines
+            heightCtx.strokeStyle = 'rgba(220, 38, 38, 0.5)';
+            heightCtx.lineWidth = 1;
+            heightCtx.setLineDash([3, 3]);
+            heightCtx.beginPath();
+            heightCtx.moveTo(50, groundY - 35);
+            heightCtx.lineTo(buildingX, groundY - lidarPixels);
+            heightCtx.lineTo(buildingX, groundY);
+            heightCtx.stroke();
+            heightCtx.setLineDash([]);
+
+            // Camera FOV
+            heightCtx.strokeStyle = 'rgba(124, 58, 237, 0.5)';
+            heightCtx.lineWidth = 1;
+            heightCtx.setLineDash([3, 3]);
+            heightCtx.beginPath();
+            heightCtx.moveTo(70, groundY - 35);
+            heightCtx.lineTo(buildingX + buildingWidth, groundY - rooflinePixels);
+            heightCtx.stroke();
+            heightCtx.setLineDash([]);
+
+            // Labels
+            heightCtx.fillStyle = '#9ca3af';
+            heightCtx.font = '10px sans-serif';
+            heightCtx.textAlign = 'left';
+            heightCtx.fillText('Ground', 30, groundY + 20);
+            heightCtx.fillText('Sensor', 40, groundY - 55);
+
+            // Height scale
+            heightCtx.strokeStyle = '#6b7280';
+            heightCtx.lineWidth = 1;
+            heightCtx.beginPath();
+            heightCtx.moveTo(50, groundY);
+            heightCtx.lineTo(50, groundY - totalHeight);
+            heightCtx.stroke();
+
+            // Scale ticks
+            for (let i = 0; i <= totalHeight / 10; i++) {
+                const y = groundY - i * 10;
+                heightCtx.beginPath();
+                heightCtx.moveTo(45, y);
+                heightCtx.lineTo(55, y);
+                heightCtx.stroke();
+            }
+
+            // Estimated height calculation
+            const coverage = parseFloat(document.getElementById('coveragePercent').value) / 100;
+            const confidence = parseFloat(document.getElementById('confidenceWeight').value);
+
+            // Formula: H_est = max(H_lidar, H_camera) with confidence weighting
+            const lidarEst = lidarMaxHeight / coverage;
+            const estimatedH = Math.max(lidarMaxHeight, cameraRoofline * confidence);
+
+            // Draw estimated height
+            heightCtx.fillStyle = '#10b981';
+            heightCtx.font = 'bold 11px sans-serif';
+            heightCtx.textAlign = 'center';
+            heightCtx.fillText(`Estimated: ${estimatedH.toFixed(1)}m`, w / 2, 20);
+
+            // Method explanation
+            heightCtx.fillStyle = '#9ca3af';
+            heightCtx.font = '9px sans-serif';
+            heightCtx.fillText('max(LiDAR_height, Camera_roofline × confidence)', w / 2, 35);
+
+            updateHeightCalculation();
+        }
+
+        function updateHeightCalculation() {
+            const lidarMax = parseFloat(document.getElementById('lidarMaxHeight').value) || 8;
+            const coverage = parseFloat(document.getElementById('coveragePercent').value) / 100 || 0.65;
+            const cameraRoof = parseFloat(document.getElementById('cameraRoofline').value) || 13;
+            const confidence = parseFloat(document.getElementById('confidenceWeight').value) || 0.8;
+
+            // Method 1: LiDAR extrapolation
+            const lidarExtrapolated = lidarMax / coverage;
+
+            // Method 2: Camera projection
+            const cameraHeight = cameraRoof;
+
+            // Final estimate (take maximum with confidence weighting)
+            const estimated = Math.max(lidarMax, cameraHeight * confidence);
+
+            // Display result
+            document.getElementById('estimatedHeight').textContent = estimated.toFixed(1) + ' m';
+
+            // Add explanation
+            const resultDiv = document.getElementById('heightResult');
+            const accuracy = coverage > 0.7 ? 'High' : (coverage > 0.5 ? 'Medium' : 'Low');
+            resultDiv.innerHTML = `
+                <h4 style="font-size: 0.85rem; margin-bottom: 4px;">Estimated Building Height</h4>
+                <p style="font-size: 1.5rem; font-weight: 700; font-family: 'JetBrains Mono', monospace;">${estimated.toFixed(1)} m</p>
+                <p style="font-size: 0.75rem; opacity: 0.8;">Confidence: ${accuracy} (${(coverage * 100).toFixed(0)}% LiDAR coverage)</p>
+            `;
+        }
+
+        // Event listeners for height estimation
+        document.getElementById('lidarMaxHeight').addEventListener('input', drawHeightEstimation);
+        document.getElementById('coveragePercent').addEventListener('input', drawHeightEstimation);
+        document.getElementById('cameraRoofline').addEventListener('input', drawHeightEstimation);
+        document.getElementById('confidenceWeight').addEventListener('input', drawHeightEstimation);
+
+        // Initialize
+        draw();
+        drawHeightEstimation();
+    </script>
+</body>
+</html>
